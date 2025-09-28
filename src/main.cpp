@@ -1,122 +1,161 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <cctype> 
+#include <cctype>
 #include "AVL.h"
 
 using namespace std;
 
-// Function to handle command line parsing and execution
-void processCommand(AVL& tree, const string& line) {
+// handle command line parsing and execution
+void parseCommand(AVL &tree, const string &line)
+{
     istringstream in(line);
     string command;
     in >> command;
 
-    if (command == "insert") {
+    if (command == "insert")
+    {
         string name;
         string ufid;
 
-        // Skip leading whitespace until the first quote
+        // go to first quote
         char first_quote;
-        if (!(in >> first_quote) || first_quote != '"') {
-             cout << "unsuccessful" << endl;
-             return;
+        if (!(in >> first_quote) || first_quote != '"')
+        {
+            cout << "unsuccessful" << endl;
+            return;
         }
 
-        // Read the name content until the closing quote
-        if (!getline(in, name, '"')) {
-             cout << "unsuccessful" << endl;
-             return;
+        // read the name content in the quotes
+        if (!getline(in, name, '"'))
+        {
+            cout << "unsuccessful" << endl;
+            return;
         }
 
-        // Read the UFID after the quoted name
+        // read ufid after the quotes
         in >> ufid;
-        
-        // Use non-const string variables to satisfy the AVL.h function signature (string &)
-        cout << tree.insert(name, ufid) << endl;
 
-    } else if (command == "remove") {
+        // insert command
+        cout << tree.insert(name, ufid) << endl;
+    }
+    else if (command == "remove")
+    {
+        // read ufid
         string ufid;
         in >> ufid;
 
-        if (ufid.empty()) {
+        // validate ufid
+        if (ufid.empty())
+        {
             cout << "unsuccessful" << endl;
             return;
         }
 
+        // remove function
         cout << tree.remove(ufid) << endl;
+    }
+    else if (command == "search")
+    {
+        string rest;
+        getline(in, rest); // everything after "search"
 
-    } else if (command == "search") {
-        string searchParam;
-        
-        char peek_char = in.peek();
+        // find first character
+        size_t start = rest.find_first_not_of(" \t\r\n");
+        if (start == string::npos)
+        {
+            cout << "unsuccessful" << endl;
+            return;
+        }
 
-        if (peek_char == '"') {
-            // Search by NAME
-            in.get(); // Consume the opening quote
-            if (!getline(in, searchParam, '"')) {
+        if (rest[start] == '"')
+        {
+            // name search, so find closing quote
+            size_t close = rest.find('"', start + 1);
+            if (close == string::npos || close == start + 1)
+            {
                 cout << "unsuccessful" << endl;
                 return;
             }
-            cout << tree.search_NAME(searchParam) << endl;
-
-        } else if (std::isdigit(peek_char)) {
-            // Search by ID
-            in >> searchParam;
-            cout << tree.search_ID(searchParam) << endl;
-
-        } else {
-            cout << "unsuccessful" << endl;
-            return;
+            string name = rest.substr(start + 1, close - (start + 1));
+            cout << tree.search_NAME(name) << endl;
         }
+        else
+        {
+            // ufid search, read the token starting at 'start'
+            size_t end = rest.find_first_of(" \t\r\n", start);
+            string ufid = (end == string::npos) ? rest.substr(start)
+                                                : rest.substr(start, end - start);
 
-    } else if (command == "printInorder") {
+            // validate 8 digits
+            if (ufid.size() != 8)
+            {
+                cout << "unsuccessful" << endl;
+                return;
+            }
+            for (char c : ufid)
+            {
+                if (!isdigit(static_cast<unsigned char>(c)))
+                {
+                    cout << "unsuccessful" << endl;
+                    return;
+                }
+            }
+            cout << tree.search_ID(ufid) << endl;
+        }
+    }
+    else if (command == "printInorder")
+    {
         cout << tree.printInorder() << endl;
-
-    } else if (command == "printPreorder") {
+    }
+    else if (command == "printPreorder")
+    {
         cout << tree.printPreorder() << endl;
-
-    } else if (command == "printPostorder") {
+    }
+    else if (command == "printPostorder")
+    {
         cout << tree.printPostorder() << endl;
-
-    } else if (command == "printLevelCount") {
+    }
+    else if (command == "printLevelCount")
+    {
         cout << tree.printLevelCount() << endl;
-
-    } else if (command == "removeInorder") {
+    }
+    else if (command == "removeInorder")
+    {
         int n;
-        if (in >> n) {
+        if (in >> n)
+        {
             cout << tree.removeInorder(n) << endl;
-        } else {
-            cout << "unsuccessful" << endl; 
         }
-    } else {
+        else
+        {
+            cout << "unsuccessful" << endl;
+        }
+    }
+    else
+    {
         cout << "unsuccessful" << endl;
     }
 }
 
-
-int main(){
+int main()
+{
     AVL tree;
     string numOfCommandsStr;
 
-    if (!getline(cin, numOfCommandsStr)) return 0;
-    
-    for (char c : numOfCommandsStr) {
-        if (!std::isdigit(c)) return 0;
-    }
-
+    // get num of commands from first line
+    getline(cin, numOfCommandsStr);
     int numOfCommands = 0;
-    try {
-        numOfCommands = stoi(numOfCommandsStr);
-    } catch (...) {
-        return 0;
+    numOfCommands = stoi(numOfCommandsStr);
+
+    // parse each line for commands
+    for (int i = 0; i < numOfCommands; i++)
+    {
+        string line;
+        if (!getline(cin, line))
+            break;
+        parseCommand(tree, line);
     }
 
-    for (int i = 0; i < numOfCommands; i ++){
-        string line;
-        if (!getline(cin, line)) break;
-        processCommand(tree, line);
-    }
-    
     return 0;
 }
